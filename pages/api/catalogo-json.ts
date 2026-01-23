@@ -3,49 +3,6 @@ import axios from "axios";
 
 const IVA = 0.19;
 
-function normalize(s: any): string {
-  return String(s ?? "").trim();
-}
-function keyNorm(s: any): string {
-  return normalize(s).toUpperCase();
-}
-
-type CategoryMap = Record<string, string[]>;
-
-function readCategoryMap(): { order: string[]; mapNorm: Record<string, Set<string>> } {
-  const raw = process.env.CATEGORY_MAP_JSON || "{}";
-  let parsed: CategoryMap;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error("CATEGORY_MAP_JSON inválido. Revisa comas, comillas y llaves.");
-  }
-
-  const order = Object.keys(parsed).map((k) => normalize(k)); // mantiene el orden del JSON
-  const mapNorm: Record<string, Set<string>> = {};
-
-  for (const cat of order) {
-    const list = parsed[cat] || parsed[keyNorm(cat)] || [];
-    mapNorm[cat] = new Set(list.map((x) => keyNorm(x)));
-  }
-
-  return { order, mapNorm };
-}
-
-function resolveCategoryAndTread(collectionTitles: string[], order: string[], mapNorm: Record<string, Set<string>>) {
-  const colsNorm = collectionTitles.map((t) => ({ raw: normalize(t), norm: keyNorm(t) }));
-
-  for (const cat of order) {
-    const allowed = mapNorm[cat];
-    for (const c of colsNorm) {
-      if (allowed.has(c.norm)) {
-        return { categoria: cat, grabado: c.raw };
-      }
-    }
-  }
-  return null;
-}
-
 async function shopifyGraphQL(query: string, variables: any) {
   const shop = process.env.SHOPIFY_SHOP!;
   const token = process.env.SHOPIFY_ADMIN_TOKEN!;
@@ -57,11 +14,52 @@ async function shopifyGraphQL(query: string, variables: any) {
   return resp.data.data;
 }
 
+function normalize(s: any) {
+  return String(s ?? "").trim();
+}
+
+function safeNumber(x: any) {
+  const n = Number(String(x ?? "").replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+function applyDiscount(priceIva: number, pct: number) {
+  return round2(priceIva * (1 - pct));
+}
+
+function parseCategoryMap(): Record<string, string[]> {
+  const raw = process.env.CATEGORY_MAP_JSON || "{}";
+  try {
+    const obj = JSON.parse(raw);
+    const out: Record<string, string[]> = {};
+    for (const k of Object.keys(obj || {})) {
+      out[normalize(k).toUpperCase()] = (obj[k] || []).map((x: any) => normalize(x).toUpperCase()).filter(Boolean);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function pickCategoryFromCollections(collectionTitles: string[], map: Record<string, string[]>) {
+  const set = new Set(collectionTitles.map((t) => normalize(t).toUpperCase()).filter(Boolean));
+  for (const cat of Object.keys(map)) {
+    const needles = map[cat] || [];
+    const hit = needles.some((n) => set.has(normalize(n).toUpperCase()));
+    if (hit) return cat;
+  }
+  return "";
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) return res.status(400).json({ error: "Falta SHOPIFY_ADMIN_TOKEN" });
 
-  const limit = Math.min(Number(req.query.limit ?? 2000), 5000);
-  const { order, mapNorm } = readCategoryMap();
+  const limit = Math.min(Math.max(Number(req.query.limit || 300), 1), 2000);
+  const categoryMap = parseCategoryMap();
 
   const query = `
     query Products($cursor: String) {
@@ -72,7 +70,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           featuredImage { url }
           apps: metafield(namespace: "custom", key: "modelos_de_aplicacion") { value }
           collections(first: 50) { nodes { title } }
-          variants(first: 100) { nodes { sku title price } }
+          variants(first: 100) {
+            nodes {
+              sku
+              price
+              inventoryQuantity
+            }
+          }
         }
       }
     }
@@ -80,7 +84,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const groupsMap = new Map<string, any>();
   let cursor: string | null = null;
-  let total = 0;
 
   while (true) {
     const data = await shopifyGraphQL(query, { cursor });
@@ -91,59 +94,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .map((c: any) => normalize(c.title))
         .filter(Boolean);
 
-      const resolved = resolveCategoryAndTread(collectionTitles, order, mapNorm);
-      if (!resolved) continue;
+      const categoria = pickCategoryFromCollections(collectionTitles, categoryMap);
+      if (!categoria) continue;
 
-      const imageUrl = p.featuredImage?.url || "";
-      const appsText = normalize(p.apps?.value);
-
-      const key = `${resolved.categoria}||${resolved.grabado}`;
+      const grabado = normalize(p.title);
+      const key = `${categoria}||${grabado}`;
 
       if (!groupsMap.has(key)) {
         groupsMap.set(key, {
-          categoria: resolved.categoria,
-          grabado: resolved.grabado,
-          imagen: imageUrl,
+          categoria,
+          grabado,
+          imagen: normalize(p.featuredImage?.url || ""),
+          aplicaciones: normalize(p.apps?.value || ""),
           items: [] as any[],
         });
       }
 
       const g = groupsMap.get(key);
-      if (!g.imagen && imageUrl) g.imagen = imageUrl;
+      if (!g.imagen && p.featuredImage?.url) g.imagen = normalize(p.featuredImage.url);
 
       for (const v of p.variants?.nodes || []) {
         const sku = normalize(v.sku);
         if (!sku) continue;
 
-        const medida = normalize(v.title);
-        const precioIva = Number(v.price || 0);
-        const precioSin = precioIva ? Math.round((precioIva / (1 + IVA)) * 100) / 100 : 0;
+        const precioIva = safeNumber(v.price);
+        const precioSin = precioIva ? round2(precioIva / (1 + IVA)) : 0;
 
-        g.items.push({ sku, medida, precioIva, precioSin, apps: appsText });
-        total += 1;
-        if (total >= limit) break;
+        const inventario = Number.isFinite(Number(v.inventoryQuantity)) ? Number(v.inventoryQuantity) : 0;
+
+        g.items.push({
+          sku,
+          inventario,
+          precioCatalogoSinIva: precioSin,
+          precioCatalogoConIva: precioIva,
+          precio35: applyDiscount(precioIva, 0.35),
+          precio30: applyDiscount(precioIva, 0.30),
+          precio25: applyDiscount(precioIva, 0.25),
+          precio20: applyDiscount(precioIva, 0.20),
+        });
       }
-      if (total >= limit) break;
     }
 
-    if (total >= limit) break;
     if (!page.pageInfo.hasNextPage) break;
     cursor = page.pageInfo.endCursor;
+
+    const currentCount = Array.from(groupsMap.values()).reduce((acc, g) => acc + (g.items?.length || 0), 0);
+    if (currentCount >= limit) break;
   }
 
   const groups = Array.from(groupsMap.values()).map((g) => {
     const uniq = new Map<string, any>();
-    for (const it of g.items) uniq.set(`${it.sku}||${it.medida}`, it);
+    for (const it of g.items || []) uniq.set(it.sku, it);
     g.items = Array.from(uniq.values()).sort((a, b) => a.sku.localeCompare(b.sku));
     return g;
   });
 
-  groups.sort((a, b) => {
-    const ia = order.indexOf(a.categoria);
-    const ib = order.indexOf(b.categoria);
-    if (ia !== ib) return ia - ib;
-    return a.grabado.localeCompare(b.grabado);
-  });
+  groups.sort((a, b) => (a.categoria + "||" + a.grabado).localeCompare(b.categoria + "||" + b.grabado));
 
-  return res.status(200).json({ ok: true, count: groups.length, groups });
+  res.status(200).json({ ok: true, count: groups.length, groups });
 }

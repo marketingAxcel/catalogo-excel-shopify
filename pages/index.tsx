@@ -2,18 +2,29 @@ import { useEffect, useMemo, useState } from "react";
 
 type Item = {
   sku: string;
-  medida: string;
-  precioIva: number;
-  precioSin: number;
-  apps?: string;
+  inventario: number;
+  precioCatalogoSinIva: number;
+  precioCatalogoConIva: number;
+  precio35: number;
+  precio30: number;
+  precio25: number;
+  precio20: number;
 };
 
 type Group = {
   categoria: string;
   grabado: string;
   imagen: string;
+  aplicaciones?: string;
   items: Item[];
 };
+
+const money = (n: any) =>
+  new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(Number(n || 0));
 
 export default function Home() {
   const [q, setQ] = useState("");
@@ -48,17 +59,15 @@ export default function Home() {
 
     return groups
       .map((g) => {
-        const hayAppsGroup = (g.items?.some((it) => (it.apps || "").toLowerCase().includes(term)) ?? false);
         const headerHit =
           (g.categoria || "").toLowerCase().includes(term) ||
           (g.grabado || "").toLowerCase().includes(term) ||
-          (hayAppsGroup && term.length >= 2);
+          ((g.aplicaciones || "").toLowerCase().includes(term) && term.length >= 2);
 
         const items = (g.items || []).filter((it) => {
           const sku = (it.sku || "").toLowerCase();
-          const medida = (it.medida || "").toLowerCase();
-          const apps = (it.apps || "").toLowerCase();
-          return sku.includes(term) || medida.includes(term) || apps.includes(term);
+          const inv = String(it.inventario ?? "").toLowerCase();
+          return sku.includes(term) || inv.includes(term);
         });
 
         if (headerHit) return { ...g, items: g.items || [] };
@@ -80,7 +89,7 @@ export default function Home() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por SKU, grabado, medida, categoría, aplicaciones..."
+            placeholder="Buscar por SKU, grabado, categoría, inventario..."
             style={{
               width: 420,
               padding: "10px 12px",
@@ -162,7 +171,7 @@ export default function Home() {
             <div>CATEGORÍA</div>
             <div>IMAGEN</div>
             <div>GRABADO</div>
-            <div>REFERENCIAS / MEDIDAS / APLICACIONES</div>
+            <div>REFERENCIAS / PRECIOS / INVENTARIO / APLICACIONES</div>
           </div>
 
           {filtered.length === 0 ? (
@@ -179,9 +188,7 @@ export default function Home() {
                   background: gi % 2 === 0 ? "#070707" : "#050505",
                 }}
               >
-                <div style={{ padding: 14, borderRight: "1px solid #222", fontWeight: 800 }}>
-                  {g.categoria}
-                </div>
+                <div style={{ padding: 14, borderRight: "1px solid #222", fontWeight: 800 }}>{g.categoria}</div>
 
                 <div style={{ padding: 14, borderRight: "1px solid #222" }}>
                   {g.imagen ? (
@@ -203,43 +210,80 @@ export default function Home() {
                   )}
                 </div>
 
-                <div style={{ padding: 14, borderRight: "1px solid #222", fontWeight: 900 }}>
-                  {g.grabado}
-                </div>
+                <div style={{ padding: 14, borderRight: "1px solid #222", fontWeight: 900 }}>{g.grabado}</div>
 
                 <div style={{ padding: 14 }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr style={{ color: "#bbb", fontSize: 12 }}>
                         <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>SKU</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>MEDIDA</th>
-                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO+IVA</th>
-                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>SIN IVA</th>
-                        <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>APLICACIONES</th>
+                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>INV</th>
+                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                          CAT. SIN IVA
+                        </th>
+                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                          CAT. + IVA
+                        </th>
+                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                          35% DCTO
+                        </th>
+                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                          30% DCTO
+                        </th>
+                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                          25% DCTO
+                        </th>
+                        <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                          20% DCTO
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {(g.items || []).map((it, i) => (
-                        <tr key={`${it.sku}-${it.medida}-${i}`}>
+                        <tr key={`${it.sku}-${i}`}>
                           <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", fontWeight: 900 }}>
                             {it.sku}
                           </td>
-                          <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", fontWeight: 900 }}>
-                            {it.medida}
+                          <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
+                            {Number(it.inventario || 0).toLocaleString("es-CO")}
                           </td>
                           <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
-                            {Number(it.precioIva || 0).toLocaleString("es-CO")}
+                            {money(it.precioCatalogoSinIva)}
                           </td>
                           <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
-                            {Number(it.precioSin || 0).toLocaleString("es-CO")}
+                            {money(it.precioCatalogoConIva)}
                           </td>
-                          <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", whiteSpace: "pre-wrap" }}>
-                            {it.apps || ""}
+                          <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
+                            {money(it.precio35)}
+                          </td>
+                          <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
+                            {money(it.precio30)}
+                          </td>
+                          <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
+                            {money(it.precio25)}
+                          </td>
+                          <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
+                            {money(it.precio20)}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+
+                  {(g.aplicaciones || "").trim() ? (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        paddingTop: 10,
+                        borderTop: "1px solid #222",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: 1.25,
+                      }}
+                    >
+                      <span style={{ color: "#ffd400", fontWeight: 900 }}>MODELOS DE APLICACIÓN:</span>{" "}
+                      <span style={{ color: "#ddd" }}>{g.aplicaciones}</span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))
