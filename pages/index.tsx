@@ -89,7 +89,7 @@ export default function Home() {
   }, [filtered]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#181819", color: "#fff", padding: 28 }}>
+    <div style={{ minHeight: "100vh", background: "#070707", color: "#fff", padding: 28 }}>
       <div style={{ maxWidth: 1500, margin: "0 auto" }}>
         <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, color: "#eeff03" }}>Catálogo llantas Paytton Tires</h1>
 
@@ -106,6 +106,7 @@ export default function Home() {
               outline: "none",
               background: "#0b0b0b",
               color: "#fff",
+              marginTop:"10px"
             }}
           />
 
@@ -152,10 +153,10 @@ export default function Home() {
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "180px 260px 1fr",
-                    background: "#181819",
+                    gridTemplateColumns: "500px 140px 1fr",
+                    background: "#070707",
                     borderBottom: "1px solid #222",
-                    padding: "12px 14px",
+                    padding: "20px",
                     fontWeight: 900,
                     color: "#eeff03",
                     letterSpacing: 0.3,
@@ -171,22 +172,20 @@ export default function Home() {
                     key={`${g.categoria}-${g.grabado}-${gi}`}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "180px 260px 1fr",
+                      gridTemplateColumns: "500px 140px 1fr",
                       borderBottom: "1px solid #141414",
-                      background: gi % 2 === 0 ? "#070707" : "#181819",
+                      background: gi % 2 === 0 ? "#070707" : "#070707",
                     }}
                   >
-                    <div style={{ padding: 14, borderRight: "1px solid #141414" }}>
+                    <div style={{ padding: 20, borderRight: "1px solid #141414" }}>
                       {g.imagen ? (
                         <img
                           src={g.imagen}
                           alt={g.grabado}
                           style={{
-                            width: 140,
-                            height: 140,
+                            width: 450,
+                            height: 450,
                             objectFit: "contain",
-                            background: "#0a0a0a",
-                            border: "1px solid #222",
                             borderRadius: 10,
                             padding: 8,
                           }}
@@ -196,11 +195,11 @@ export default function Home() {
                       )}
                     </div>
 
-                    <div style={{ padding: 14, borderRight: "1px solid #141414", fontWeight: 900, fontSize: 18 }}>
+                    <div style={{ padding: 20, borderRight: "1px solid #141414", fontWeight: 900, fontSize: 18, textAlign: "center" }}>
                       {g.grabado}
                     </div>
 
-                    <div style={{ padding: 14, overflowX: "auto" }}>
+                    <div style={{ padding: 20, overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1300 }}>
                         <thead>
                           <tr style={{ color: "#bbb", fontSize: 12 }}>
