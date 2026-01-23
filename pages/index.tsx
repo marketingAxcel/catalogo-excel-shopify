@@ -153,7 +153,7 @@ export default function Home() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "180px 260px 1fr",
-                    background: "#050505",
+                    background: "#181819",
                     borderBottom: "1px solid #222",
                     padding: "12px 14px",
                     fontWeight: 900,
@@ -173,7 +173,7 @@ export default function Home() {
                       display: "grid",
                       gridTemplateColumns: "180px 260px 1fr",
                       borderBottom: "1px solid #141414",
-                      background: gi % 2 === 0 ? "#070707" : "#050505",
+                      background: gi % 2 === 0 ? "#070707" : "#181819",
                     }}
                   >
                     <div style={{ padding: 14, borderRight: "1px solid #141414" }}>
@@ -204,28 +204,28 @@ export default function Home() {
                       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1300 }}>
                         <thead>
                           <tr style={{ color: "#bbb", fontSize: 12 }}>
-                            <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               SKU
                             </th>
-                            <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               INV
                             </th>
-                            <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               PRECIO CATÁLOGO SIN IVA
                             </th>
-                            <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               PRECIO CATÁLOGO + IVA
                             </th>
-                            <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               PRECIO 35% DCTO CON IVA
                             </th>
-                            <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               PRECIO 30% DCTO CON IVA
                             </th>
-                            <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               PRECIO 25% DCTO CON IVA
                             </th>
-                            <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                               PRECIO 20% DCTO CON IVA
                             </th>
                             <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>
