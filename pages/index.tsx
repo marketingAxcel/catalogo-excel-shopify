@@ -89,12 +89,9 @@ export default function Home() {
   }, [filtered]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", color: "#fff", padding: 28 }}>
+    <div style={{ minHeight: "100vh", background: "#181819", color: "#fff", padding: 28 }}>
       <div style={{ maxWidth: 1500, margin: "0 auto" }}>
-        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800 }}>Catálogo Paytton</h1>
-        <div style={{ opacity: 0.75, marginTop: 6, marginBottom: 16 }}>
-          Datos desde Shopify (colecciones + variantes + metafields).
-        </div>
+        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, color: "#eeff03" }}>Catálogo llantas Paytton Tires</h1>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
           <input
@@ -111,39 +108,6 @@ export default function Home() {
               color: "#fff",
             }}
           />
-
-          <input
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value || 0))}
-            type="number"
-            min={1}
-            max={5000}
-            style={{
-              width: 120,
-              padding: "10px 12px",
-              borderRadius: 10,
-              border: "1px solid #333",
-              outline: "none",
-              background: "#0b0b0b",
-              color: "#fff",
-            }}
-          />
-
-          <button
-            onClick={load}
-            disabled={loading}
-            style={{
-              padding: "10px 14px",
-              borderRadius: 10,
-              border: "1px solid #444",
-              background: loading ? "#111" : "#141414",
-              color: "#fff",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontWeight: 700,
-            }}
-          >
-            {loading ? "Cargando..." : "Actualizar"}
-          </button>
 
           <div style={{ marginLeft: "auto", opacity: 0.8 }}>
             Mostrando: <b>{filtered.length}</b> grabados
@@ -175,7 +139,7 @@ export default function Home() {
                 style={{
                   fontSize: 22,
                   fontWeight: 900,
-                  color: "#ffd400",
+                  color: "#eeff03",
                   borderBottom: "1px solid #222",
                   paddingBottom: 10,
                   marginBottom: 14,
@@ -193,7 +157,7 @@ export default function Home() {
                     borderBottom: "1px solid #222",
                     padding: "12px 14px",
                     fontWeight: 900,
-                    color: "#ffd400",
+                    color: "#eeff03",
                     letterSpacing: 0.3,
                   }}
                 >
