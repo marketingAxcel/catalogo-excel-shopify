@@ -9,13 +9,13 @@ type Item = {
   precio30: number;
   precio25: number;
   precio20: number;
+  apps?: string;
 };
 
 type Group = {
   categoria: string;
   grabado: string;
   imagen: string;
-  aplicaciones?: string;
   items: Item[];
 };
 
@@ -61,13 +61,13 @@ export default function Home() {
       .map((g) => {
         const headerHit =
           (g.categoria || "").toLowerCase().includes(term) ||
-          (g.grabado || "").toLowerCase().includes(term) ||
-          ((g.aplicaciones || "").toLowerCase().includes(term) && term.length >= 2);
+          (g.grabado || "").toLowerCase().includes(term);
 
         const items = (g.items || []).filter((it) => {
           const sku = (it.sku || "").toLowerCase();
+          const apps = (it.apps || "").toLowerCase();
           const inv = String(it.inventario ?? "").toLowerCase();
-          return sku.includes(term) || inv.includes(term);
+          return sku.includes(term) || apps.includes(term) || inv.includes(term);
         });
 
         if (headerHit) return { ...g, items: g.items || [] };
@@ -89,9 +89,9 @@ export default function Home() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por SKU, grabado, categoría, inventario..."
+            placeholder="Buscar por SKU, grabado, categoría, aplicaciones, inventario..."
             style={{
-              width: 420,
+              width: 520,
               padding: "10px 12px",
               borderRadius: 10,
               border: "1px solid #333",
@@ -171,7 +171,7 @@ export default function Home() {
             <div>CATEGORÍA</div>
             <div>IMAGEN</div>
             <div>GRABADO</div>
-            <div>REFERENCIAS / PRECIOS / INVENTARIO / APLICACIONES</div>
+            <div>REFERENCIAS / PRECIOS / INVENTARIO</div>
           </div>
 
           {filtered.length === 0 ? (
@@ -219,22 +219,25 @@ export default function Home() {
                         <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>SKU</th>
                         <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>INV</th>
                         <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
-                          CAT. SIN IVA
+                          PRECIO CATÁLOGO SIN IVA
                         </th>
                         <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
-                          CAT. + IVA
+                          PRECIO CATÁLOGO + IVA
                         </th>
                         <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
-                          35% DCTO
+                          PRECIO 35% DCTO CON IVA
                         </th>
                         <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
-                          30% DCTO
+                          PRECIO 30% DCTO CON IVA
                         </th>
                         <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
-                          25% DCTO
+                          PRECIO 25% DCTO CON IVA
                         </th>
                         <th style={{ textAlign: "right", padding: "6px 8px", borderBottom: "1px solid #222" }}>
-                          20% DCTO
+                          PRECIO 20% DCTO CON IVA
+                        </th>
+                        <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                          MODELOS DE APLICACIÓN
                         </th>
                       </tr>
                     </thead>
@@ -265,25 +268,20 @@ export default function Home() {
                           <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
                             {money(it.precio20)}
                           </td>
+                          <td
+                            style={{
+                              padding: "8px 8px",
+                              borderBottom: "1px solid #141414",
+                              whiteSpace: "pre-wrap",
+                              minWidth: 260,
+                            }}
+                          >
+                            {it.apps || ""}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-
-                  {(g.aplicaciones || "").trim() ? (
-                    <div
-                      style={{
-                        marginTop: 10,
-                        paddingTop: 10,
-                        borderTop: "1px solid #222",
-                        whiteSpace: "pre-wrap",
-                        lineHeight: 1.25,
-                      }}
-                    >
-                      <span style={{ color: "#ffd400", fontWeight: 900 }}>MODELOS DE APLICACIÓN:</span>{" "}
-                      <span style={{ color: "#ddd" }}>{g.aplicaciones}</span>
-                    </div>
-                  ) : null}
                 </div>
               </div>
             ))
