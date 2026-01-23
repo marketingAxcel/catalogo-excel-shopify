@@ -259,7 +259,7 @@ export default function Home() {
                               <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
                                 {money(it.precio20)}
                               </td>
-                              <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", whiteSpace: "pre-wrap" }}>
+                              <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", whiteSpace: "pre-wrap", textTransform: "lowercase" }}>
                                 {it.apps || ""}
                               </td>
                             </tr>
