@@ -12,10 +12,7 @@ async function shopifyGraphQL(query: string, variables: any) {
   const url = `https://${shop}/admin/api/${version}/graphql.json`;
 
   const resp = await axios.post(url, { query, variables }, { headers: { "X-Shopify-Access-Token": token } });
-
-  if (resp.data?.errors) throw new Error(JSON.stringify(resp.data.errors));
-  if (!resp.data?.data) throw new Error("Respuesta Shopify inválida (sin data)");
-
+  if (resp.data.errors) throw new Error(JSON.stringify(resp.data.errors));
   return resp.data.data;
 }
 
@@ -42,74 +39,93 @@ function parseCategoryMap(): Record<string, string[]> {
   }
 }
 
-function buildReverseTreadToCategory(categoryMap: Record<string, string[]>) {
-  const rev = new Map<string, string>();
-  for (const cat of Object.keys(categoryMap)) {
-    for (const tread of categoryMap[cat] || []) {
-      if (!rev.has(tread)) rev.set(tread, cat);
-    }
-  }
-  return rev;
-}
-
-function resolveCategoryFromCollections(collectionTitles: string[]) {
+function resolveCategory(collectionTitles: string[], categoryMap: Record<string, string[]>) {
   const titlesF = collectionTitles.map(fold);
+
   for (const cat of CATEGORY_ORDER) {
-    if (titlesF.includes(fold(cat))) return cat;
+    const catF = fold(cat);
+
+    if (titlesF.includes(catF)) return cat;
+
+    const aliases = categoryMap[catF] || [];
+    const hit = titlesF.some((t) => aliases.includes(t));
+    if (hit) return cat;
   }
+
   return "";
 }
 
-function resolveTreadFromCollections(collectionTitles: string[], cat: string, categoryMap: Record<string, string[]>) {
+function resolveTread(collectionTitles: string[], cat: string, categoryMap: Record<string, string[]>) {
   const titlesF = collectionTitles.map(fold);
+
   const aliases = categoryMap[fold(cat)] || [];
   const treadF = titlesF.find((t) => aliases.includes(t));
   if (!treadF) return "";
+
   const idx = titlesF.indexOf(treadF);
   return idx >= 0 ? norm(collectionTitles[idx]) : "";
 }
 
-function resolveTreadFromMetafields(p: any) {
-  const candidates = [
-    p.tread1?.value,
-    p.tread2?.value,
-    p.tread3?.value,
-    p.tread4?.value,
-    p.tread5?.value,
-  ].map(norm);
+/** NUEVO: Detecta TL/TT desde el título */
+function resolveTubeTypeFromTitle(title: string) {
+  const m = norm(title).match(/\b(TL|TT)\b/i);
+  return m ? m[1].toUpperCase() : "";
+}
 
-  return candidates.find((x) => !!x) || "";
+/** NUEVO: Detecta la medida desde colecciones (preferido) y fallback desde el título */
+function resolveSize(collectionTitles: string[], productTitle: string) {
+  const titles = (collectionTitles || []).map(norm).filter(Boolean);
+
+  // Ej: 120/70-17, 90/90-17, 130/70-17
+  const reMetric = /^\d{2,3}\/\d{2,3}-\d{2}$/;
+
+  // Ej: 2.75-17, 3.00-18, 2.50-17, 3.00-17
+  const reInch = /^\d(?:\.\d{2})?-\d{2}$/;
+
+  const fromCollections = titles.find((t) => reMetric.test(t) || reInch.test(t));
+  let size = fromCollections || "";
+
+  if (!size) {
+    const t = norm(productTitle);
+
+    // 120/70-17
+    const m1 = t.match(/\b(\d{2,3}\/\d{2,3}-\d{2})\b/);
+    if (m1?.[1]) size = m1[1];
+
+    // 2.75-17 / 3.00-18
+    if (!size) {
+      const m2 = t.match(/\b(\d(?:\.\d{2})?-\d{2})\b/);
+      if (m2?.[1]) size = m2[1];
+    }
+  }
+
+  const tube = resolveTubeTypeFromTitle(productTitle); // TL/TT
+  if (!size) return "";
+
+  return tube ? `${size} ${tube}` : size; // Ej: "120/70-17 TL"
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) return res.status(400).json({ error: "Falta SHOPIFY_ADMIN_TOKEN" });
   if (!process.env.SHOPIFY_SHOP) return res.status(400).json({ error: "Falta SHOPIFY_SHOP" });
 
-  const debugOn = String(req.query.debug || "") === "1";
-
   const categoryMap = parseCategoryMap();
-  const revTreadToCat = buildReverseTreadToCategory(categoryMap);
 
   const query = `
     query Products($cursor: String) {
-      products(first: 250, after: $cursor) {
+      products(first: 50, after: $cursor) {
         pageInfo { hasNextPage endCursor }
         nodes {
           title
           featuredImage { url }
           apps: metafield(namespace: "custom", key: "modelos_de_aplicacion") { value }
-
-          # <-- GRABADO / NOMBRE DE LA LLANTA (ajusta si tu key es diferente)
-          tread1: metafield(namespace: "custom", key: "nombre_de_la_llanta") { value }
-          tread2: metafield(namespace: "custom", key: "nombre_llanta") { value }
-          tread3: metafield(namespace: "custom", key: "nombre_de_llanta") { value }
-          tread4: metafield(namespace: "custom", key: "grabado") { value }
-          tread5: metafield(namespace: "custom", key: "tread") { value }
-
           collections(first: 80) { nodes { title } }
-
-          variants(first: 250) {
-            nodes { sku price inventoryQuantity }
+          variants(first: 100) {
+            nodes {
+              sku
+              price
+              inventoryQuantity
+            }
           }
         }
       }
@@ -117,58 +133,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   `;
 
   const groupsMap = new Map<string, any>();
-
-  let totalProducts = 0;
-  let totalVariants = 0;
-  let skippedNoCategory = 0;
-  let skippedNoTread = 0;
-  const examplesNoCategory: any[] = [];
-  const examplesNoTread: any[] = [];
-
   let cursor: string | null = null;
 
   while (true) {
     const data = await shopifyGraphQL(query, { cursor });
     const page = data.products;
 
-    for (const p of page.nodes || []) {
-      totalProducts += 1;
-
+    for (const p of page.nodes) {
       const collectionTitles: string[] = (p.collections?.nodes || [])
         .map((c: any) => norm(c.title))
         .filter((t: string) => Boolean(t));
 
-      let categoria = resolveCategoryFromCollections(collectionTitles);
+      const categoria = resolveCategory(collectionTitles, categoryMap);
+      if (!categoria) continue;
 
-      let grabado = resolveTreadFromMetafields(p);
+      const grabado = resolveTread(collectionTitles, categoria, categoryMap);
+      if (!grabado) continue;
 
-      if (!grabado && categoria) {
-        grabado = resolveTreadFromCollections(collectionTitles, categoria, categoryMap);
-      }
-
-      if (!categoria && grabado) {
-        const catF = revTreadToCat.get(fold(grabado));
-        if (catF) {
-          const found = CATEGORY_ORDER.find((c) => fold(c) === catF);
-          categoria = found || "";
-        }
-      }
-
-      if (!categoria) {
-        skippedNoCategory += 1;
-        if (debugOn && examplesNoCategory.length < 10) {
-          examplesNoCategory.push({ title: p.title, collections: collectionTitles });
-        }
-        continue;
-      }
-
-      if (!grabado) {
-        skippedNoTread += 1;
-        if (debugOn && examplesNoTread.length < 10) {
-          examplesNoTread.push({ title: p.title, categoria, collections: collectionTitles });
-        }
-        continue;
-      }
+      // NUEVO: medida (una sola por producto, se replica a sus variantes)
+      const medida = resolveSize(collectionTitles, p.title || "");
 
       const key = `${categoria}||${fold(grabado)}`;
       const imageUrl = p.featuredImage?.url || "";
@@ -206,6 +189,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         g.items.push({
           sku,
+          medida, // <-- NUEVO
           inventario,
           precioCatalogoSinIva,
           precioCatalogoConIva,
@@ -215,12 +199,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           precio20,
           apps: g.apps || "",
         });
-
-        totalVariants += 1;
       }
     }
 
-    if (!page.pageInfo?.hasNextPage) break;
+    if (!page.pageInfo.hasNextPage) break;
     cursor = page.pageInfo.endCursor;
   }
 
@@ -244,18 +226,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return fold(a.grabado).localeCompare(fold(b.grabado));
   });
 
-  const payload: any = { ok: true, count: groups.length, groups };
-
-  if (debugOn) {
-    payload.debug = {
-      totalProducts,
-      totalVariants,
-      skippedNoCategory,
-      skippedNoTread,
-      examplesNoCategory,
-      examplesNoTread,
-    };
-  }
-
-  res.status(200).json(payload);
+  res.status(200).json({ ok: true, count: groups.length, groups });
 }

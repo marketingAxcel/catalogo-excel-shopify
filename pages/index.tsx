@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type Item = {
   sku: string;
+  medida?: string;
   inventario: number;
   precioCatalogoSinIva: number;
   precioCatalogoConIva: number;
@@ -83,9 +84,10 @@ export default function Home() {
 
         const items = (g.items || []).filter((it) => {
           const sku = (it.sku || "").toLowerCase();
+          const medida = (it.medida || "").toLowerCase();
           const apps = (it.apps || "").toLowerCase();
           const inv = String(it.inventario ?? "").toLowerCase();
-          return sku.includes(term) || apps.includes(term) || inv.includes(term);
+          return sku.includes(term) || medida.includes(term) || apps.includes(term) || inv.includes(term);
         });
 
         if (headerHit) return { ...g, items: g.items || [] };
@@ -144,12 +146,15 @@ export default function Home() {
       <div className="wrap" style={{ maxWidth: 1500, margin: "0 auto" }}>
         <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, color: "#eeff03" }}>Catálogo llantas Paytton Tires</h1>
 
-        <div className="headerRow" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+        <div
+          className="headerRow"
+          style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}
+        >
           <input
             className="searchInput"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por SKU, grabado, categoría, aplicaciones, inventario..."
+            placeholder="Buscar por SKU, medida, grabado, categoría, aplicaciones, inventario..."
             style={{
               width: 520,
               padding: "10px 12px",
@@ -207,7 +212,6 @@ export default function Home() {
                 {cat}
               </div>
 
-              {/* DESKTOP: tu tabla actual */}
               <div className="desktopOnly">
                 <div style={{ border: "1px solid #222", borderRadius: 14, overflow: "hidden" }}>
                   <div
@@ -268,11 +272,14 @@ export default function Home() {
                       </div>
 
                       <div style={{ padding: 20, overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1300 }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1400 }}>
                           <thead>
                             <tr style={{ color: "#bbb", fontSize: 12 }}>
                               <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                                 SKU
+                              </th>
+                              <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
+                                MEDIDA
                               </th>
                               <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>
                                 INV
@@ -305,6 +312,17 @@ export default function Home() {
                               <tr key={`${it.sku}-${i}`}>
                                 <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", fontWeight: 900 }}>
                                   {it.sku}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "8px 8px",
+                                    borderBottom: "1px solid #141414",
+                                    textAlign: "center",
+                                    fontWeight: 900,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {it.medida || ""}
                                 </td>
                                 <td style={{ padding: "8px 8px", borderBottom: "1px solid #141414", textAlign: "right" }}>
                                   {num(it.inventario)}
@@ -347,7 +365,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* MOBILE: Cards (sin scroll horizontal) */}
               <div className="mobileOnly" style={{ display: "grid", gap: 14 }}>
                 {list.map((g, gi) => (
                   <div
@@ -359,7 +376,6 @@ export default function Home() {
                       background: "#070707",
                     }}
                   >
-                    {/* Header del grabado */}
                     <div
                       style={{
                         padding: 14,
@@ -392,7 +408,6 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Imagen */}
                     <div style={{ padding: 14, borderBottom: "1px solid #141414" }}>
                       {g.imagen ? (
                         <img
@@ -413,7 +428,6 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* Items */}
                     <div style={{ padding: 14, display: "grid", gap: 10 }}>
                       {(g.items || []).map((it, i) => (
                         <div
@@ -426,7 +440,22 @@ export default function Home() {
                           }}
                         >
                           <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                            <div style={{ fontWeight: 900, color: "#fff", fontSize: 14 }}>{it.sku}</div>
+                            <div style={{ fontWeight: 900, color: "#fff", fontSize: 14 }}>
+                              {it.sku}
+                              {it.medida ? (
+                                <span
+                                  style={{
+                                    marginLeft: 8,
+                                    fontSize: 12,
+                                    opacity: 0.75,
+                                    fontWeight: 800,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {it.medida}
+                                </span>
+                              ) : null}
+                            </div>
                             <div style={{ fontSize: 12, opacity: 0.8 }}>
                               INV: <b style={{ color: "#eeff03" }}>{num(it.inventario)}</b>
                             </div>
