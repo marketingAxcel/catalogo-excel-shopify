@@ -270,8 +270,8 @@ export default function Home() {
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>SKU</th>
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>MEDIDA</th>
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>INV</th>
-            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO CATÁLOGO SIN IVA</th>
-            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO CATÁLOGO + IVA</th>
+            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO UNITARIO SIN IVA</th>
+            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO UNITARIO + IVA</th>
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 35% DCTO SIN IVA</th>
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 30% DCTO SIN IVA</th>
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 25% DCTO SIN IVA</th>
