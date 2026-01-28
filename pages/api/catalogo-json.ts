@@ -10,12 +10,12 @@ async function shopifyGraphQL(query: string, variables: any) {
   const token = process.env.SHOPIFY_ADMIN_TOKEN!;
   const version = process.env.SHOPIFY_API_VERSION || "2026-01";
   const url = `https://${shop}/admin/api/${version}/graphql.json`;
-
+  
   const resp = await axios.post(url, { query, variables }, { headers: { "X-Shopify-Access-Token": token } });
-
+  
   if (resp.data?.errors) throw new Error(JSON.stringify(resp.data.errors));
   if (!resp.data?.data) throw new Error("Respuesta Shopify inválida (sin data)");
-
+  
   return resp.data.data;
 }
 
@@ -25,9 +25,9 @@ function norm(s: any) {
 
 function fold(s: any) {
   return norm(s)
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+  .toUpperCase()
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "");
 }
 
 function parseCategoryMap(): Record<string, string[]> {
@@ -77,30 +77,30 @@ function resolveTreadFromMetafields(p: any) {
     p.tread4?.value,
     p.tread5?.value,
   ].map(norm);
-
+  
   return candidates.find((x) => !!x) || "";
 }
 
 function extractMeasureFromText(text: string) {
   const s = norm(text);
-
+  
   const a = s.match(/(\d{2,3})\s*\/\s*(\d{2,3})\s*[-/]\s*(\d{2})/);
   if (a) return `${a[1]}/${a[2]}-${a[3]}`;
-
+  
   const b = s.match(/(\d(?:\.\d{1,2})?)\s*[-/]\s*(\d{2})/);
   if (b) return `${b[1]}-${b[2]}`;
-
+  
   return "";
 }
 
 function resolveMeasureFromCollections(collectionTitles: string[]) {
   const hits: string[] = [];
-
+  
   for (const t of collectionTitles) {
     const m = extractMeasureFromText(t);
     if (m) hits.push(m);
   }
-
+  
   if (!hits.length) return "";
   hits.sort((x, y) => y.length - x.length);
   return hits[0];
@@ -114,12 +114,12 @@ function resolveMeasureFromTitle(productTitle: string) {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) return res.status(400).json({ error: "Falta SHOPIFY_ADMIN_TOKEN" });
   if (!process.env.SHOPIFY_SHOP) return res.status(400).json({ error: "Falta SHOPIFY_SHOP" });
-
+  
   const debugOn = String(req.query.debug || "") === "1";
-
+  
   const categoryMap = parseCategoryMap();
   const revTreadToCat = buildReverseTreadToCategory(categoryMap);
-
+  
   const query = `
     query Products($cursor: String) {
       products(first: 250, after: $cursor) {
@@ -128,15 +128,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           title
           featuredImage { url }
           apps: metafield(namespace: "custom", key: "modelos_de_aplicacion") { value }
-
+  
           tread1: metafield(namespace: "custom", key: "nombre_de_la_llanta") { value }
           tread2: metafield(namespace: "custom", key: "nombre_llanta") { value }
           tread3: metafield(namespace: "custom", key: "nombre_de_llanta") { value }
           tread4: metafield(namespace: "custom", key: "grabado") { value }
           tread5: metafield(namespace: "custom", key: "tread") { value }
-
+  
           collections(first: 80) { nodes { title } }
-
+  
           variants(first: 250) {
             nodes { sku price inventoryQuantity }
           }
@@ -144,37 +144,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
   `;
-
+  
   const groupsMap = new Map<string, any>();
-
+  
   let totalProducts = 0;
   let totalVariants = 0;
   let skippedNoCategory = 0;
   let skippedNoTread = 0;
   const examplesNoCategory: any[] = [];
   const examplesNoTread: any[] = [];
-
+  
   let cursor: string | null = null;
-
+  
   while (true) {
     const data = await shopifyGraphQL(query, { cursor });
     const page = data.products;
-
+    
     for (const p of page.nodes || []) {
       totalProducts += 1;
-
+      
       const collectionTitles: string[] = (p.collections?.nodes || [])
-        .map((c: any) => norm(c.title))
-        .filter((t: string) => Boolean(t));
-
+      .map((c: any) => norm(c.title))
+      .filter((t: string) => Boolean(t));
+      
       let categoria = resolveCategoryFromCollections(collectionTitles);
-
+      
       let grabado = resolveTreadFromMetafields(p);
-
+      
       if (!grabado && categoria) {
         grabado = resolveTreadFromCollections(collectionTitles, categoria, categoryMap);
       }
-
+      
       if (!categoria && grabado) {
         const catF = revTreadToCat.get(fold(grabado));
         if (catF) {
@@ -182,7 +182,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           categoria = found || "";
         }
       }
-
+      
       if (!categoria) {
         skippedNoCategory += 1;
         if (debugOn && examplesNoCategory.length < 10) {
@@ -190,7 +190,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         continue;
       }
-
+      
       if (!grabado) {
         skippedNoTread += 1;
         if (debugOn && examplesNoTread.length < 10) {
@@ -198,14 +198,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         continue;
       }
-
+      
       const medida =
-        resolveMeasureFromCollections(collectionTitles) || resolveMeasureFromTitle(p.title || "");
-
+      resolveMeasureFromCollections(collectionTitles) || resolveMeasureFromTitle(p.title || "");
+      
       const key = `${categoria}||${fold(grabado)}`;
       const imageUrl = p.featuredImage?.url || "";
       const appsText = norm(p.apps?.value || "");
-
+      
       if (!groupsMap.has(key)) {
         groupsMap.set(key, {
           categoria,
@@ -215,27 +215,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           items: [] as any[],
         });
       }
-
+      
       const g = groupsMap.get(key);
       if (!g.imagen && imageUrl) g.imagen = imageUrl;
       if (!g.apps && appsText) g.apps = appsText;
-
+      
       for (const v of p.variants?.nodes || []) {
         const sku = norm(v.sku);
         if (!sku) continue;
-
-        const precioCatalogoConIva = Number(v.price || 0);
-        const precioCatalogoSinIva = precioCatalogoConIva
-          ? Math.round((precioCatalogoConIva / (1 + IVA)) * 100) / 100
-          : 0;
-
+        const precioCatalogoSinIva = Number(v.price || 0);
+        const precioCatalogoConIva = Math.round(precioCatalogoSinIva * (1 + IVA) * 100) / 100;
         const precio35 = Math.round(precioCatalogoConIva * 0.65 * 100) / 100;
         const precio30 = Math.round(precioCatalogoConIva * 0.7 * 100) / 100;
         const precio25 = Math.round(precioCatalogoConIva * 0.75 * 100) / 100;
         const precio20 = Math.round(precioCatalogoConIva * 0.8 * 100) / 100;
-
+        
         const inventario = Number(v.inventoryQuantity ?? 0);
-
+        
         g.items.push({
           sku,
           medida,
@@ -248,37 +244,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           precio20,
           apps: g.apps || "",
         });
-
+        
         totalVariants += 1;
       }
     }
-
+    
     if (!page.pageInfo?.hasNextPage) break;
     cursor = page.pageInfo.endCursor;
   }
-
+  
   const groups = Array.from(groupsMap.values()).map((g) => {
     const uniq = new Map<string, any>();
     for (const it of g.items) uniq.set(it.sku, it);
     g.items = Array.from(uniq.values()).sort((a, b) => a.sku.localeCompare(b.sku));
     return g;
   });
-
+  
   const catIndex = (c: string) => {
     const cf = fold(c);
     const i = CATEGORY_ORDER.findIndex((x) => fold(x) === cf);
     return i === -1 ? 999 : i;
   };
-
+  
   groups.sort((a, b) => {
     const ca = catIndex(a.categoria);
     const cb = catIndex(b.categoria);
     if (ca !== cb) return ca - cb;
     return fold(a.grabado).localeCompare(fold(b.grabado));
   });
-
+  
   const payload: any = { ok: true, count: groups.length, groups };
-
+  
   if (debugOn) {
     payload.debug = {
       totalProducts,
@@ -289,6 +285,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       examplesNoTread,
     };
   }
-
+  
   res.status(200).json(payload);
 }

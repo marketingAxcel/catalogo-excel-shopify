@@ -271,10 +271,10 @@ export default function Home() {
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>INV</th>
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO UNITARIO SIN IVA</th>
             <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO UNITARIO + IVA</th>
-            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 35% DCTO SIN IVA</th>
-            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 30% DCTO SIN IVA</th>
-            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 25% DCTO SIN IVA</th>
-            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 20% DCTO SIN IVA</th>
+            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 35% DCTO CON IVA</th>
+            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 30% DCTO CON IVA</th>
+            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 25% DCTO CON IVA</th>
+            <th style={{ textAlign: "center", padding: "6px 8px", borderBottom: "1px solid #222" }}>PRECIO 20% DCTO CON IVA</th>
             <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #222" }}>MODELOS DE APLICACIÓN</th>
             </tr>
             </thead>
